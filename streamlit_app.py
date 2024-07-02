@@ -90,11 +90,13 @@ if uk_or_global_choice == 'UK':
         st.image(flag_image, width = 150)
 
     uk_paramater_choice = st.selectbox('Choose pollution parameter', pollution_paramters)
+    uk_city = city_alternate_names.get(uk_locations_choice)
     if uk_paramater_choice == 'All':
-        uk_city = city_alternate_names.get(uk_locations_choice)
         get_all_pollutants_uk(uk_city)
-    if uk_paramater_choice != 'All':
-        uk_city = city_alternate_names.get(uk_locations_choice)
+    elif uk_paramater_choice == 'PM 2.5':
+        uk_paramater_choice = 'pm25'
+        get_single_pollutant_uk(uk_city, uk_paramater_choice)
+    else:
         get_single_pollutant_uk(uk_city, uk_paramater_choice)
     
 
