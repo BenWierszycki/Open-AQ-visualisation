@@ -1,6 +1,7 @@
 streamlit
-matplotlib
 pandas
-psycopg2-binary
 requests
+psycopg2-binary
 python-dotenv
+matplotlib
+datetime
