@@ -120,18 +120,18 @@ if uk_or_global_choice == 'UK':
         pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
         with pollutant_col1:
             st.metric(label = f"Latest PM 2.5 µg/m³", 
-                        value = [latest_pollutant_data][0]['latest_pm25'], 
-                        delta = ([latest_pollutant_data][0]['latest_pm25'])-([latest_pollutant_data][0]['second_latest_pm25']),
+                        value = round([latest_pollutant_data][0]['latest_pm25'],1), 
+                        delta = round(([latest_pollutant_data][0]['latest_pm25'])-([latest_pollutant_data][0]['second_latest_pm25']),1),
                         delta_color = 'inverse')
         with pollutant_col2:
             st.metric(label = f"Latest O3 µg/m³", 
-                        value = [latest_pollutant_data][0]['latest_o3'], 
-                        delta = ([latest_pollutant_data][0]['latest_o3'])-([latest_pollutant_data][0]['second_latest_o3']),
+                        value = round([latest_pollutant_data][0]['latest_o3'],1), 
+                        delta = round(([latest_pollutant_data][0]['latest_o3'])-([latest_pollutant_data][0]['second_latest_o3']),1),
                         delta_color = 'inverse')
         with pollutant_col3:
             st.metric(label = f"Latest NO2 µg/m³", 
-                        value = [latest_pollutant_data][0]['latest_no2'], 
-                        delta = ([latest_pollutant_data][0]['latest_no2'])-([latest_pollutant_data][0]['second_latest_no2']),
+                        value = round([latest_pollutant_data][0]['latest_no2'],1), 
+                        delta = round(([latest_pollutant_data][0]['latest_no2'])-([latest_pollutant_data][0]['second_latest_no2']),1),
                         delta_color = 'inverse')
             
         st.write(' ')
