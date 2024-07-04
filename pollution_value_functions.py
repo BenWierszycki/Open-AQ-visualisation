@@ -17,6 +17,7 @@ port = st.secrets['port']
 ####################################################################################
 # Latest pollutant value UK cities
 
+@st.cache_data
 def get_latest_pollutants_uk(renamed_city, pollutant):
     conn = psql.connect(
         database=st.secrets['dbname'],
@@ -55,6 +56,7 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
 ##########################################################################################
 # UK last 7 days
 
+@st.cache_data
 def get_av_last_7_days(renamed_city, parameter_choice):
     conn = psql.connect(
         database=st.secrets['dbname'],
@@ -91,6 +93,8 @@ def get_av_last_7_days(renamed_city, parameter_choice):
 
 ####################################################################################
 # Uk last year
+
+@st.cache_data
 def get_av_last_year(renamed_city, parameter_choice):
     conn = psql.connect(
         database=st.secrets['dbname'],
@@ -127,6 +131,7 @@ def get_av_last_year(renamed_city, parameter_choice):
 
 ########################################################################################
 
+@st.cache_data
 def get_latest_pollutants_global(renamed_city):
     conn = psql.connect(
         database=st.secrets['dbname'],

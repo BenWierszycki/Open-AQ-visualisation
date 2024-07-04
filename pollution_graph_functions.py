@@ -21,6 +21,7 @@ port = st.secrets['port']
 # UK ALL POLLUTANTS - ALL TIMEFRAMES
 ############################################################################
 
+@st.cache_data
 def get_all_pollutants_uk(renamed_city, timeframe):
     
     conn = psql.connect(
@@ -111,6 +112,7 @@ def get_all_pollutants_uk(renamed_city, timeframe):
 # ALL SINGLE POLLUTANTS - ANY TIMEFRAME
 #################################################################################################
 
+@st.cache_data
 def get_single_pollutant(renamed_city, timeframe, parameter_choice):
     
     conn = psql.connect(
@@ -197,6 +199,7 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
 ##################################################################################################
 # COMPARING 2 CITIES FUNCTION
 
+@st.cache_data
 def compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_choice_2):
     # Establish a connection to the database
     conn = psql.connect(
