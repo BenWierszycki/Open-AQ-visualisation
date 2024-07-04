@@ -78,6 +78,7 @@ time_frame_to_days = {
 pollution_paramters = ['All','PM 2.5', 'O3', 'NO2']
 pollution_paramters_2 = ['PM 2.5', 'O3', 'NO2']
 
+
 st.title("Open AQ Air Pollution Data")
 
 st.write('')
@@ -152,6 +153,9 @@ if uk_or_global_choice == 'UK':
             parameter_choice = 'pm25'
 
         st.subheader(f'{renamed_city} {parameter_choice.upper()} (µg/m³):')
+
+        st.write('')
+
         pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
         with pollutant_col1:
             st.metric(label = f"Latest", 
@@ -198,6 +202,9 @@ else:
     latest_pollutant_data = get_latest_pollutants_global(renamed_city)
 
     st.subheader(f'{renamed_city} PM 2.5 Data (µg/m³):')
+
+    st.write('')
+
     pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
     with pollutant_col1:
         st.metric(label = f"Latest", 
@@ -217,7 +224,9 @@ st.write(' ')
 st.write('')
 yes_no_comparison = st.radio(f"Compare {locations_choice} with another location?", options = ['Yes','No' ], index = 1)
 st.write('')
-st.write('')
+
+st.write(' ')
+
 
 if yes_no_comparison == 'Yes':
     comparison_choice = st.selectbox(f'Select location to compare with :', all_locations)
@@ -247,15 +256,13 @@ else:
     timeframe = time_frame_to_days.get(desired_timeframe)
     st.write('')
     st.write('') 
+    st.write(' ')
     if parameter_choice == 'All':
         get_all_pollutants_uk(renamed_city, timeframe)
     else:
         if parameter_choice == 'PM 2.5':
             parameter_choice = 'pm25'
         get_single_pollutant(renamed_city, timeframe, parameter_choice)
-
-
-
 
 
 
