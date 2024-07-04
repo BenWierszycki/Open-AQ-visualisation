@@ -79,7 +79,7 @@ pollution_paramters = ['All','PM 2.5', 'O3', 'NO2']
 pollution_paramters_2 = ['PM 2.5', 'O3', 'NO2']
 
 
-st.title("Open AQ Air Pollution Data")
+st.markdown("<h1 style='font-size:48px;'>Open AQ Air Pollution Data</h1>", unsafe_allow_html=True)
 
 st.write('')
 st.write('')
