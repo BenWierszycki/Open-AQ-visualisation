@@ -116,7 +116,7 @@ if uk_or_global_choice == 'UK':
     
     st.write('')
 
-    parameter_choice = st.selectbox('Choose pollution parameter', pollution_paramters)
+    parameter_choice = st.selectbox('Choose pollutant:', pollution_paramters)
     st.write('')
     st.write('')
 
@@ -240,7 +240,7 @@ if yes_no_comparison == 'Yes':
     st.write('')
 
     if locations_choice in uk_locations and comparison_choice in uk_locations:
-        parameter_choice_2 = st.selectbox('Choose parameter to compare', pollution_paramters_2)
+        parameter_choice_2 = st.selectbox('Choose pollutant to compare:', pollution_paramters_2)
         st.write('')
         st.write('')
         compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_choice_2)

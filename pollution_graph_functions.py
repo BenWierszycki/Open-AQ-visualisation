@@ -184,6 +184,9 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
     else:
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%B, %Y'))
 
+    if parameter_choice == 'pm25':
+        parameter_choice = 'PM 2.5'
+
     plt.xticks(rotation=30)
 
     plt.legend()
@@ -292,6 +295,9 @@ def compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_
             plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y'))
         else:
             plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%B, %Y'))
+
+        if parameter_choice_2 == 'pm25':
+            parameter_choice_2 = 'PM 2.5'
 
         plt.xticks(rotation=30)
         plt.legend()
