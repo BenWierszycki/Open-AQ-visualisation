@@ -7,6 +7,7 @@ import os
 import matplotlib.dates as mdates
 import seaborn
 from datetime import datetime, timedelta
+import plotly.express as px
 
 username = st.secrets['username']
 password = st.secrets['password']
@@ -15,11 +16,9 @@ dbname = st.secrets['dbname']
 port = st.secrets['port']
 
 
+##########################################################################
+# Function plotting UK pollution data - all 3 pollutants
 
-
-######################################################################################
-# UK ALL POLLUTANTS - ALL TIMEFRAMES
-############################################################################
 
 @st.cache_data
 def get_all_pollutants_uk(renamed_city, timeframe):
@@ -34,7 +33,7 @@ def get_all_pollutants_uk(renamed_city, timeframe):
 
     cur = conn.cursor()
 
-    # SQL query to get the most recent datetime
+    # Get most recent datetime
     latest_datetime_query = f"""
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data
@@ -43,7 +42,7 @@ def get_all_pollutants_uk(renamed_city, timeframe):
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
-    # SQL query to select data from the chosen timeframe
+    # Select data from the chosen timeframe
     sql_query = f"""
         SELECT datetime, {renamed_city}_pm25, {renamed_city}_o3, {renamed_city}_no2
         FROM student.bw_air_pollution_data
@@ -53,89 +52,81 @@ def get_all_pollutants_uk(renamed_city, timeframe):
         ORDER BY datetime
     """
 
-    start_datetime = latest_datetime - timedelta(days= int(f'{timeframe}'))
+    # Calculate start date
+    start_datetime = latest_datetime - timedelta(days=int(timeframe))
     cur.execute(sql_query, (start_datetime, latest_datetime))
     rows = cur.fetchall()
 
     cur.close()
     conn.close()
 
-
-    # Converting query result to df
+    # Convert query result to df
     df = pd.DataFrame(rows, columns=['datetime', f'{renamed_city}_pm25', f'{renamed_city}_o3', f'{renamed_city}_no2'])
 
-    # Convert datetime column to datetime type
+    # Make datetime column datetime type
     df['datetime'] = pd.to_datetime(df['datetime'])
 
-    # Label font size
-    plt.rcParams.update({
-        'font.size': 30,
-        'axes.titlesize': 30,
-        'axes.labelsize': 28,
-        'xtick.labelsize': 16,
-        'ytick.labelsize': 16,
-        'legend.fontsize': 16
-    })
+    # Combine pollution columns for plotting
+    df_melted = df.melt(id_vars='datetime', var_name='Pollutant', value_name='Value')
 
-    # Using ggplot
-    plt.style.use('ggplot')
+    # Remove city name from pollutant names
+    df_melted['Pollutant'] = df_melted['Pollutant'].str.replace(f'{renamed_city}_', '').str.upper()
 
-    # Plotting lines
-    plt.figure(figsize=(14, 7))
-    plt.plot(df['datetime'], df[f'{renamed_city}_pm25'], label='PM2.5', linestyle='-', color='b', linewidth=1.5, alpha=0.7)
-    plt.plot(df['datetime'], df[f'{renamed_city}_o3'], label='O3', linestyle='-', color='g', linewidth=1.5, alpha=0.7)
-    plt.plot(df['datetime'], df[f'{renamed_city}_no2'], label='NO2', linestyle='-', color='r', linewidth=1.5, alpha=0.7)
+    # Plotly interactive line
+    fig = px.line(
+        df_melted,
+        x='datetime',
+        y='Value',
+        color='Pollutant',
+        title=f'Pollution Data for {renamed_city}',
+        labels={'datetime': 'Date', 'Value': 'Pollution Level μg/m3', 'Pollutant': 'Pollutant'},
+    )
 
-    # Format the date based on timeframe
-    if timeframe == 1:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y %H:%M'))
-    elif timeframe == 7 or timeframe == 30:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y'))
-    else:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%B, %Y'))
+    # Layout and date formatting
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Pollution Level μg/m3',
+        title_font_size=28,
+        xaxis=dict(
+            tickformat='%d %B, %Y %H:%M' if timeframe == 1 else '%d %B, %Y' if timeframe in [7, 30] else '%B, %Y',
+            tickangle=30,
+        ),
+        legend_title='Pollutant'
+    )
 
-    plt.xticks(rotation=30)
+    # Update hover information
+    fig.update_traces(
+        hovertemplate='Date = %{x}<br>Pollutant = %{fullData.name}<br>Value = %{y:.2f}'
+    )
 
-    plt.legend()
-    plt.xlabel('Date', fontsize=18)
-    plt.ylabel('Pollution Level μg/m3', fontsize=18)
-    plt.title(f'Pollution Data for {renamed_city}', fontsize=28)
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
+    st.plotly_chart(fig)
 
-    st.pyplot(plt)
+###########################################################################################################
+# Function plotting single pollutant data - all locations
 
-
-
-
-#################################################################################################
-# ALL SINGLE POLLUTANTS - ANY TIMEFRAME
-#################################################################################################
 
 @st.cache_data
 def get_single_pollutant(renamed_city, timeframe, parameter_choice):
-    
     conn = psql.connect(
-        dbname=dbname,
-        user=username,
-        password=password,
-        host=host,
-        port=port
+        dbname=st.secrets['dbname'],
+        user=st.secrets['username'],
+        password=st.secrets['password'],
+        host=st.secrets['host'],
+        port=st.secrets['port']
     )
 
     cur = conn.cursor()
 
-    # SQL query to get the most recent datetime
+    # Get most recent datetime
     latest_datetime_query = f"""
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data
         WHERE {renamed_city}_{parameter_choice.lower()} IS NOT NULL
-
     """
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
-    # SQL query to select data from the most recent datetime to 7 days earlier
+    # Select data from the chosen timeframe
     sql_query = f"""
         SELECT datetime, {renamed_city}_{parameter_choice.lower()}
         FROM student.bw_air_pollution_data
@@ -145,62 +136,61 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
         ORDER BY datetime
     """
 
-    start_datetime = latest_datetime - timedelta(days= int(f'{timeframe}'))
+    # Calculate start date
+    start_datetime = latest_datetime - timedelta(days=int(timeframe))
     cur.execute(sql_query, (start_datetime, latest_datetime))
     rows = cur.fetchall()
 
-    # Close cursor and connection
     cur.close()
     conn.close()
 
-    # Convert query result to a pandas DataFrame
+    # Convert query result to df
     df = pd.DataFrame(rows, columns=['datetime', f'{renamed_city}_{parameter_choice.lower()}'])
 
-    # Convert datetime column to datetime type
+    # Make datetime column datetime type
     df['datetime'] = pd.to_datetime(df['datetime'])
 
-    # Setting the font size for labels
-    plt.rcParams.update({
-        'font.size': 30,
-        'axes.titlesize': 30,
-        'axes.labelsize': 28,
-        'xtick.labelsize': 16,
-        'ytick.labelsize': 16,
-        'legend.fontsize': 16
-    })
+    # Combine pollution columns for plotting
+    df_melted = df.melt(id_vars='datetime', var_name='Pollutant', value_name='Value')
 
-    # Using ggplot style
-    plt.style.use('ggplot')
+    # Remove city name from pollutant names
+    df_melted['Pollutant'] = df_melted['Pollutant'].str.replace(f'{renamed_city}_', '').str.upper()
 
-    # Plotting with matplotlib
-    plt.figure(figsize=(14, 7))
-    plt.plot(df['datetime'], df[f'{renamed_city}_{parameter_choice.lower()}'], label= f'{parameter_choice.upper()}', linestyle='-', color='b', linewidth=1.5, alpha=0.7)
+    # Plotly interactive line
+    fig = px.line(
+        df_melted,
+        x='datetime',
+        y='Value',
+        color='Pollutant',
+        title=f'{parameter_choice.upper()} Pollution Data for {renamed_city}',
+        labels={'datetime': 'Date', 'Value': 'Pollution Level μg/m³', 'Pollutant': 'Pollutant'},
+    )
 
-    # Format the date based on timeframe
-    if timeframe == 1:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y %H:%M'))
-    elif timeframe == 7 or timeframe == 30:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y'))
-    else:
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%B, %Y'))
+    # Update hover information
+    fig.update_traces(hovertemplate='<br>'.join([
+        'Date = %{x|%d %B, %Y %H:%M}',
+        'Pollutant = %{fullData.name}',
+        'Value = %{y:.2f}'
+    ]))
 
-    if parameter_choice == 'pm25':
-        parameter_choice = 'PM 2.5'
+    # Layout and date formatting
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Pollution Level μg/m³',
+        title_font_size=28,
+        xaxis=dict(
+            tickformat='%d %B, %Y %H:%M' if timeframe == 1 else '%d %B, %Y' if timeframe in [7, 30] else '%B, %Y',
+            tickangle=30,
+        ),
+        legend_title='Pollutant'
+    )
 
-    plt.xticks(rotation=30)
+    st.plotly_chart(fig)
 
-    plt.legend()
-    plt.xlabel('Date', fontsize=18)
-    plt.ylabel('Pollution Level μg/m3', fontsize=18)
-    plt.title(f'{parameter_choice.upper()} Pollution Data for {renamed_city}', fontsize=28)
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
 
-    # Display the plot in Streamlit
-    st.pyplot(plt)
+###########################################################################################################
+# Function comparing single pollutant data across locations
 
-##################################################################################################
-# COMPARING 2 CITIES FUNCTION
 
 @st.cache_data
 def compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_choice_2):
@@ -222,95 +212,106 @@ def compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_
     else:
         parameter_choice_2 = parameter_choice_2.lower()
 
-    try:
-        # SQL query to get the most recent datetime for the first city
-        latest_datetime_query_1 = f"""
-            SELECT MAX(datetime)
-            FROM student.bw_air_pollution_data
-            WHERE {renamed_city}_{parameter_choice_2} IS NOT NULL
-        """
-        cur.execute(latest_datetime_query_1)
-        latest_datetime_1 = cur.fetchone()[0]
+    # Get most recent datetime for location 1
+    latest_datetime_query_1 = f"""
+        SELECT MAX(datetime)
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city}_{parameter_choice_2} IS NOT NULL
+    """
+    cur.execute(latest_datetime_query_1)
+    latest_datetime_1 = cur.fetchone()[0]
 
-        # SQL query to get the most recent datetime for the second city
-        latest_datetime_query_2 = f"""
-            SELECT MAX(datetime)
-            FROM student.bw_air_pollution_data
-            WHERE {renamed_city_2}_{parameter_choice_2} IS NOT NULL
-        """
-        cur.execute(latest_datetime_query_2)
-        latest_datetime_2 = cur.fetchone()[0]
+    # Get most recent datetime for location 2
+    latest_datetime_query_2 = f"""
+        SELECT MAX(datetime)
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city_2}_{parameter_choice_2} IS NOT NULL
+    """
+    cur.execute(latest_datetime_query_2)
+    latest_datetime_2 = cur.fetchone()[0]
 
-        # Use the latest datetime between the two cities
-        latest_datetime = min(latest_datetime_1, latest_datetime_2)
+    # Use the latest datetime between the two cities
+    latest_datetime = min(latest_datetime_1, latest_datetime_2)
 
-        # Calculate the start datetime based on the timeframe
-        start_datetime = latest_datetime - timedelta(days=int(timeframe))
+    # Calculate the start datetime based on the timeframe
+    start_datetime = latest_datetime - timedelta(days=int(timeframe))
 
-        # SQL query to select data for the first city within the specified timeframe
-        sql_query_1 = f"""
-            SELECT datetime, {renamed_city}_{parameter_choice_2}
-            FROM student.bw_air_pollution_data
-            WHERE {renamed_city}_{parameter_choice_2} IS NOT NULL
-            AND datetime BETWEEN %s AND %s
-            AND {renamed_city}_{parameter_choice_2} != -999
-            ORDER BY datetime
-        """
-        cur.execute(sql_query_1, (start_datetime, latest_datetime))
-        rows_1 = cur.fetchall()
+    # Select data from the chosen timeframe
+    sql_query_1 = f"""
+        SELECT datetime, {renamed_city}_{parameter_choice_2}
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city}_{parameter_choice_2} IS NOT NULL
+        AND datetime BETWEEN %s AND %s
+        AND {renamed_city}_{parameter_choice_2} != -999
+        ORDER BY datetime
+    """
+    cur.execute(sql_query_1, (start_datetime, latest_datetime))
+    rows_1 = cur.fetchall()
 
-        # SQL query to select data for the second city within the specified timeframe
-        sql_query_2 = f"""
-            SELECT datetime, {renamed_city_2}_{parameter_choice_2}
-            FROM student.bw_air_pollution_data
-            WHERE {renamed_city_2}_{parameter_choice_2} IS NOT NULL
-            AND datetime BETWEEN %s AND %s
-            AND {renamed_city_2}_{parameter_choice_2} != -999
-            ORDER BY datetime
-        """
-        cur.execute(sql_query_2, (start_datetime, latest_datetime))
-        rows_2 = cur.fetchall()
+    # SQL query to select data for the second city within the specified timeframe
+    sql_query_2 = f"""
+        SELECT datetime, {renamed_city_2}_{parameter_choice_2}
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city_2}_{parameter_choice_2} IS NOT NULL
+        AND datetime BETWEEN %s AND %s
+        AND {renamed_city_2}_{parameter_choice_2} != -999
+        ORDER BY datetime
+    """
+    cur.execute(sql_query_2, (start_datetime, latest_datetime))
+    rows_2 = cur.fetchall()
 
-        # Close the cursor and connection to the database
-        cur.close()
-        conn.close()
+    # Close the cursor and connection to the database
+    cur.close()
+    conn.close()
 
-        # Convert query results to pandas DataFrames
-        df_1 = pd.DataFrame(rows_1, columns=['datetime', f'{renamed_city}_{parameter_choice_2}'])
-        df_2 = pd.DataFrame(rows_2, columns=['datetime', f'{renamed_city_2}_{parameter_choice_2}'])
+    # Convert query results to dfs
+    df_1 = pd.DataFrame(rows_1, columns=['datetime', f'{renamed_city}_{parameter_choice_2}'])
+    df_2 = pd.DataFrame(rows_2, columns=['datetime', f'{renamed_city_2}_{parameter_choice_2}'])
 
-        # Convert datetime column to datetime type
-        df_1['datetime'] = pd.to_datetime(df_1['datetime'])
-        df_2['datetime'] = pd.to_datetime(df_2['datetime'])
+    # Make datetime column datetime type
+    df_1['datetime'] = pd.to_datetime(df_1['datetime'])
+    df_2['datetime'] = pd.to_datetime(df_2['datetime'])
 
-        # Plotting settings
-        plt.figure(figsize=(14, 7))
-        plt.plot(df_1['datetime'], df_1[f'{renamed_city}_{parameter_choice_2}'], label=f'{parameter_choice_2.upper()} - {renamed_city}', linestyle='-', color='b', linewidth=1.5, alpha=0.7)
-        plt.plot(df_2['datetime'], df_2[f'{renamed_city_2}_{parameter_choice_2}'], label=f'{parameter_choice_2.upper()} - {renamed_city_2}', linestyle='-', color='r', linewidth=1.5, alpha=0.7)
+    # Merge dataframes for easier plotting with Plotly
+    df_1 = df_1.rename(columns={f'{renamed_city}_{parameter_choice_2}': f'{renamed_city}'})
+    df_2 = df_2.rename(columns={f'{renamed_city_2}_{parameter_choice_2}': f'{renamed_city_2}'})
 
-        # Format the x-axis based on the timeframe
-        if timeframe == 1:
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y %H:%M'))
-        elif timeframe == 7 or timeframe == 30:
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d %B, %Y'))
-        else:
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%B, %Y'))
+    df_combined = pd.merge(df_1, df_2, on='datetime', how='outer')
 
-        if parameter_choice_2 == 'pm25':
-            parameter_choice_2 = 'PM 2.5'
+    # Combine pollution columns for plotting
+    df_melted = df_combined.melt(id_vars='datetime', var_name='Location', value_name='Value')
 
-        plt.xticks(rotation=30)
-        plt.legend()
-        plt.xlabel('Date', fontsize=18)
-        plt.ylabel('Pollution Level μg/m3', fontsize=18)
-        plt.title(f'{parameter_choice_2.upper()} Pollution Data for {renamed_city} and {renamed_city_2}', fontsize=28)
-        plt.grid(True, linestyle='--', alpha=0.6)
-        plt.tight_layout()
+    # Plotly interactive line
+    fig = px.line(
+        df_melted,
+        x='datetime',
+        y='Value',
+        color='Location',
+        title=f'{parameter_choice_2.upper()} Pollution Data for {renamed_city} and {renamed_city_2}',
+        labels={'datetime': 'Date', 'Value': 'Pollution Level μg/m3', 'Location': 'Location'},
+    )
 
-        # Display the plot in Streamlit
-        st.pyplot(plt)
+    # Layout and date formatting
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='Pollution Level μg/m3',
+        title_font_size=28,
+        xaxis=dict(
+            tickformat='%d %B, %Y %H:%M' if timeframe == 1 else '%d %B, %Y' if timeframe in [7, 30] else '%B, %Y',
+            tickangle=30,
+        ),
+        legend_title='Location'
+    )
 
-    except Exception as e:
-        st.error(f"Error occurred: {e}")
+    # Update hover information
+    fig.update_traces(
+        hovertemplate='Date = %{x}<br>Location = %{fullData.name}<br>Value = %{y:.2f}'
+    )
+
+    st.plotly_chart(fig)
+
+
+
+
 
 
