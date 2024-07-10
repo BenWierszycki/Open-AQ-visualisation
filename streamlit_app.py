@@ -6,7 +6,9 @@ import psycopg2 as psql
 import os
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
+import plotly.express as px
 
+# import functions from other scripts
 from pollution_graph_functions import get_all_pollutants_uk
 from pollution_graph_functions import get_single_pollutant
 from pollution_graph_functions import compare_cities_pollutant
@@ -22,7 +24,7 @@ host = st.secrets['host']
 dbname = st.secrets['dbname']
 port = st.secrets['port']
 
-
+# Location lists
 all_locations = ['London Westminster',
                    'London Hillingdon',
                      'Oxford', 
@@ -40,6 +42,10 @@ global_locations = [ 'Lima',
                      'Karachi', 
                      'Singapore' ]
 
+pollution_paramters = ['All','PM 2.5', 'O3', 'NO2']
+pollution_paramters_2 = ['PM 2.5', 'O3', 'NO2']
+
+# Dictionaries for location name conversion and date conversion
 city_countries = {
     'London Westminster': 'united%20kingdom',
     'London Hillingdon': 'united%20kingdom',
@@ -75,20 +81,23 @@ time_frame_to_days = {
     'Last Month' : 30,
     'Last Year' : 365}
 
-pollution_paramters = ['All','PM 2.5', 'O3', 'NO2']
-pollution_paramters_2 = ['PM 2.5', 'O3', 'NO2']
 
-
+# Main header
 st.markdown("<h1 style='font-size:48px;'>Open AQ Air Pollution Data</h1>", unsafe_allow_html=True)
 
 st.write('')
 st.write('')
 
-st.write(
-    "Use this App to investigate air pollution data for cities in the UK and across the world!"
-)
+# Info dropdown
+with st.expander("About this app", expanded=False):
+    st.write("""
+        This app uses Open AQ to provide air pollution data for various locations in the UK and around the world.
+        Select a location to view the latest pollution levels, compare with other locations, 
+        and visualize pollution trends over different timeframes.
+    """)
 
-# choose UK or Global City ####################################################
+
+# choose UK or Global location 
 st.write('')
 uk_or_global_choice = st.radio("UK or Global Location?", options = ['UK', 'Global'])
 st.write('')
@@ -98,14 +107,18 @@ st.write('')
 # If UK location chosen:
 
 if uk_or_global_choice == 'UK':
+
+    # Location dropdown  
     locations_choice = st.selectbox('Choose a location', uk_locations)
     country = city_countries.get(locations_choice)
+    
+    # API used for flag image
     flags_url = f'https://restcountries.com/v3.1/name/{country.lower()}'
     response = requests.get(flags_url)
     flags = response.json()
     flag_image = flags[0]['flags']['png']
 
-# displaying location name and flag
+    # Displaying location name and flag
     st.write('')
     st.write('')
     name_col, flag_col = st.columns([2,1])
@@ -116,10 +129,12 @@ if uk_or_global_choice == 'UK':
     
     st.write('')
 
+    # Pollutant dropdown
     parameter_choice = st.selectbox('Choose pollutant:', pollution_paramters)
     st.write('')
     st.write('')
 
+    # Function called to get latest data
     renamed_city = city_alternate_names.get(locations_choice)
     latest_pollutant_data = get_latest_pollutants_uk(renamed_city, parameter_choice)
 
@@ -128,6 +143,7 @@ if uk_or_global_choice == 'UK':
         st.subheader(f'{renamed_city} latest data (µg/m³):')
         st.write('')
 
+        # Displaying latest data for all 3 pollutants
         pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
         with pollutant_col1:
             st.metric(label = f"Latest PM 2.5", 
@@ -156,6 +172,7 @@ if uk_or_global_choice == 'UK':
 
         st.write('')
 
+        # Displaying latest data for PM 2.5 with 7 day and year average
         pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
         with pollutant_col1:
             st.metric(label = f"Latest", 
@@ -175,19 +192,23 @@ if uk_or_global_choice == 'UK':
 # If Global location chosen
 
 else:
+    
+    # location dropdown
     locations_choice = st.selectbox('Choose a location', global_locations)
     country = city_countries.get(locations_choice)
     renamed_city = city_alternate_names.get(locations_choice)
     latest_pollutant_data = get_latest_pollutants_global(renamed_city)
 
+    # API used for flag image
     flags_url = f'https://restcountries.com/v3.1/name/{country.lower()}'
     response = requests.get(flags_url)
     flags = response.json()
     flag_image = flags[0]['flags']['png']
 
-# displaying location name and flag
     st.write('')
     st.write('')
+
+    # Displaying location name and flag
     name_col, flag_col = st.columns(2)
     with name_col:
         country_selected = st.title(locations_choice.title())
@@ -197,7 +218,7 @@ else:
     st.write('')
     st.write('')
 
-    
+    # Getting latest pollutant data for global location
     parameter_choice = 'pm25'
     latest_pollutant_data = get_latest_pollutants_global(renamed_city)
 
@@ -205,6 +226,7 @@ else:
 
     st.write('')
 
+    # Displaying latest data for PM 2.5 with 7 day and year averag
     pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
     with pollutant_col1:
         st.metric(label = f"Latest", 
@@ -222,51 +244,63 @@ else:
 st.write('')
 st.write(' ')
 st.write('')
-yes_no_comparison = st.radio(f"Compare {locations_choice} with another location?", options = ['Yes','No' ], index = 1)
-st.write('')
 
+# Comparison yes/no
+yes_no_comparison = st.radio(f"Compare {locations_choice} with another location?", options = ['Yes','No' ], index = 1)
+
+st.write('')
 st.write(' ')
 
 
 if yes_no_comparison == 'Yes':
+
+    # Compare location dropdown
     comparison_choice = st.selectbox(f'Select location to compare with :', all_locations)
     renamed_city_2 = city_alternate_names.get(comparison_choice)
     st.write('')
     st.write('')
+
+    # Timeframe selector
     desired_timeframe = st.select_slider('Select Timeframe', options=['Last 24 hours','Last 7 days', 'Last Month', 'Last Year'])
     timeframe = time_frame_to_days.get(desired_timeframe)
 
     st.write('')
     st.write('')
 
+    # Dropdown if comparing 2 UK cities, else no dropdown (PM 2.5 automatically)
     if locations_choice in uk_locations and comparison_choice in uk_locations:
         parameter_choice_2 = st.selectbox('Choose pollutant to compare:', pollution_paramters_2)
         st.write('')
         st.write('')
+
+        # Plot for pollutant
         compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_choice_2)
     else:
         parameter_choice_2 = 'pm25'
+
+        # Plot for pollutant
         compare_cities_pollutant(renamed_city, renamed_city_2, timeframe, parameter_choice_2)
     
     
 
 else:
 
+    # Timeframe slider
     desired_timeframe = st.select_slider('Select Timeframe', options=['Last 24 hours','Last 7 days', 'Last Month', 'Last Year'])
     timeframe = time_frame_to_days.get(desired_timeframe)
     st.write('')
     st.write('') 
     st.write(' ')
+
+
     if parameter_choice == 'All':
+
+        # Plot for all pollutants
         get_all_pollutants_uk(renamed_city, timeframe)
     else:
         if parameter_choice == 'PM 2.5':
             parameter_choice = 'pm25'
+        
+        # Plot for single pollutant
         get_single_pollutant(renamed_city, timeframe, parameter_choice)
-
-
-
-
-
-
 
