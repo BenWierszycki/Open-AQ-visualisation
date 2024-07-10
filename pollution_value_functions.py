@@ -15,7 +15,7 @@ dbname = st.secrets['dbname']
 port = st.secrets['port']
 
 ####################################################################################
-# Latest pollutant value UK cities
+# Function for latest pollutant value - UK cities
 
 @st.cache_data
 def get_latest_pollutants_uk(renamed_city, pollutant):
@@ -28,10 +28,11 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
     )
     cur = conn.cursor()
 
-# Define SQL queries for each pollutant
+    # Queries for each pollutant
     pollutants = ['pm25', 'o3', 'no2']
     latest_pollutant_data = {}
 
+    # Query retrieving latest 2 data readings
     for pollutant in pollutants:
         sql_query = f"""
             SELECT {renamed_city.lower()}_{pollutant.lower()}
@@ -42,6 +43,8 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
         """
         cur.execute(sql_query)
         values = cur.fetchall()
+
+        # Defining latest and 2nd latest value
         latest_value = values[0][0]
         second_latest_value = values[1][0]
 
@@ -54,7 +57,7 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
     return  latest_pollutant_data
 
 ##########################################################################################
-# UK last 7 days
+# Function for last 7 day average 
 
 @st.cache_data
 def get_av_last_7_days(renamed_city, parameter_choice):
@@ -67,7 +70,7 @@ def get_av_last_7_days(renamed_city, parameter_choice):
         )
     cur = conn.cursor()
 
-    # Define the SQL query to find the latest datetime
+    # Getting the latest datetime
     latest_datetime_query = """
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data"""
@@ -75,13 +78,14 @@ def get_av_last_7_days(renamed_city, parameter_choice):
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
-    # Define the SQL query to calculate the average value over the last 7 days
+    # Calculating the average value over the last 7 days
     sql_query = f"""
     SELECT AVG({renamed_city.lower()}_{parameter_choice.lower()})
     FROM student.bw_air_pollution_data
     WHERE datetime BETWEEN %s AND %s
     AND {renamed_city.lower()}_pm25 > -900
     """
+
     start_datetime = latest_datetime - timedelta(days=7)
     cur.execute(sql_query, (start_datetime, latest_datetime))
     avg_value = cur.fetchone()[0]
@@ -92,7 +96,7 @@ def get_av_last_7_days(renamed_city, parameter_choice):
     return avg_value
 
 ####################################################################################
-# Uk last year
+# Function for last year average
 
 @st.cache_data
 def get_av_last_year(renamed_city, parameter_choice):
@@ -105,7 +109,7 @@ def get_av_last_year(renamed_city, parameter_choice):
         )
     cur = conn.cursor()
 
-    # Define the SQL query to find the latest datetime
+    # Getting latest date
     latest_datetime_query = """
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data"""
@@ -113,7 +117,7 @@ def get_av_last_year(renamed_city, parameter_choice):
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
-    # Define the SQL query to calculate the average value over the last 7 days
+    # Calculating the average value over the last year
     sql_query = f"""
     SELECT AVG({renamed_city.lower()}_{parameter_choice.lower()})
     FROM student.bw_air_pollution_data
@@ -130,6 +134,7 @@ def get_av_last_year(renamed_city, parameter_choice):
     return avg_value
 
 ########################################################################################
+# Function for latest pollutant value - Global cities
 
 @st.cache_data
 def get_latest_pollutants_global(renamed_city):
@@ -142,7 +147,7 @@ def get_latest_pollutants_global(renamed_city):
     )
     cur = conn.cursor()
 
-
+    # Query retrieving latest 2 data readings
     sql_query = f"""
         SELECT {renamed_city.lower()}_pm25
         FROM student.bw_air_pollution_data
@@ -154,6 +159,7 @@ def get_latest_pollutants_global(renamed_city):
     cur.execute(sql_query)
     values = cur.fetchall()
 
+    # Defining latest and 2nd latest value
     latest_value = values[0][0]
     second_latest_value = values[1][0]
 
