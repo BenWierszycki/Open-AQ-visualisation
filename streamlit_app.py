@@ -83,7 +83,7 @@ time_frame_to_days = {
 
 
 # Main header
-st.markdown("<h1 style='font-size:48px;'>Open AQ Air Pollution Data</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='font-size:48px;'>Open AQ Air Pollution Visualiser</h1>", unsafe_allow_html=True)
 
 st.write('')
 st.write('')
