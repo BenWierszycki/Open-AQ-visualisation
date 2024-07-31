@@ -5,5 +5,5 @@ This repository contains the code for the hourly CRON job that extracts data fro
 The Streamlit application uses Open AQ to provide air pollution data for various locations in the UK and around the world. One can view the latest pollution levels, compare with other locations, and visualize pollution trends over different timeframes.
 
 The application can be accessed here:
-[Open AQ Visualization](https://open-aq-visualisation-l5l42rdbgzl.streamlit.app/)
+[Open AQ Visualization Application](https://open-aq-visualisation-l5l42rdbgzl.streamlit.app/)
 
