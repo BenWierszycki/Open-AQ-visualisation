@@ -24,17 +24,21 @@ host = st.secrets['host']
 dbname = st.secrets['dbname']
 port = st.secrets['port']
 
+# Helper function to get flag image URL
+def get_flag_url(country_code):
+    style = "flat"  # Options: "flat" or "shiny"
+    size = "64"  # Options: "64", "128", etc.
+    return f"https://flagsapi.com/{country_code}/{style}/{size}.png"
+
 # Location lists
-all_locations = ['London Westminster',
-                   'London Hillingdon',
+all_locations = ['London Hillingdon',
                      'Oxford', 
                      'Manchester', 
                      'Lima', 
                      'Karachi', 
                      'Singapore' ]
 
-uk_locations = ['London Westminster',
-                   'London Hillingdon',
+uk_locations = ['London Hillingdon',
                      'Oxford', 
                      'Manchester']
 
@@ -47,7 +51,6 @@ pollution_paramters_2 = ['PM 2.5', 'O3', 'NO2']
 
 # Dictionaries for location name conversion and date conversion
 city_countries = {
-    'London Westminster': 'united%20kingdom',
     'London Hillingdon': 'united%20kingdom',
     'Oxford': 'united%20kingdom',
     'Manchester': 'united%20kingdom',
@@ -56,18 +59,14 @@ city_countries = {
     'Singapore': 'singapore'
 }
 
-city_countries = {
-    'London Westminster': 'united%20kingdom',
-    'London Hillingdon': 'united%20kingdom',
-    'Oxford': 'united%20kingdom',
-    'Manchester': 'united%20kingdom',
-    'Lima': 'peru',
-    'Karachi': 'pakistan',
-    'Singapore': 'singapore'
+country_codes = {
+    'united%20kingdom': 'GB',
+    'peru': 'PE',
+    'pakistan': 'PK',
+    'singapore': 'SG'
 }
 
 city_alternate_names = {    
-    'London Westminster': 'Westminster',
     'London Hillingdon': 'Hillingdon',
     'Oxford':'Oxford',
     'Manchester': 'Manchester',
@@ -112,21 +111,19 @@ if uk_or_global_choice == 'UK':
     locations_choice = st.selectbox('Choose a location', uk_locations)
     country = city_countries.get(locations_choice)
     
-    # API used for flag image
-    flags_url = f'https://restcountries.com/v3.1/name/{country.lower()}'
-    response = requests.get(flags_url)
-    flags = response.json()
-    flag_image = flags[0]['flags']['png']
+    # Get the country code for the chosen location
+    country_code = country_codes.get(country)
+    flag_image_url = get_flag_url(country_code)
 
     # Displaying location name and flag
     st.write('')
     st.write('')
-    name_col, flag_col = st.columns([2,1])
+    name_col, flag_col = st.columns([2, 1])
     with name_col:
         country_selected = st.title(locations_choice.title())
     with flag_col:
-        st.image(flag_image, width = 150)
-    
+        st.image(flag_image_url, width=150)
+
     st.write('')
 
     # Pollutant dropdown
@@ -137,38 +134,34 @@ if uk_or_global_choice == 'UK':
     # Function called to get latest data
     renamed_city = city_alternate_names.get(locations_choice)
     latest_pollutant_data = get_latest_pollutants_uk(renamed_city, parameter_choice)
-
+    
     if parameter_choice == 'All':
-        
-        st.subheader(f'{renamed_city} latest data (µg/m³):')
+        st.subheader(f'{renamed_city} latest data (\u00b5g/m\u00b3):')
         st.write('')
-
-        # Displaying latest data for all 3 pollutants
+        
+        # Displaying latest data for all pollutants
         pollutant_col1, pollutant_col2, pollutant_col3 = st.columns(3)
         with pollutant_col1:
-            st.metric(label = f"Latest PM 2.5", 
-                        value = round([latest_pollutant_data][0]['latest_pm25'],1), 
-                        delta = round(([latest_pollutant_data][0]['latest_pm25'])-([latest_pollutant_data][0]['second_latest_pm25']),1),
-                        delta_color = 'inverse')
+            st.metric(label="Latest PM 2.5", 
+                      value=round([latest_pollutant_data][0]['latest_pm25'], 1), 
+                      delta=round(([latest_pollutant_data][0]['latest_pm25'])-([latest_pollutant_data][0]['second_latest_pm25']), 1),
+                      delta_color='inverse')
         with pollutant_col2:
-            st.metric(label = f"Latest O3", 
-                        value = round([latest_pollutant_data][0]['latest_o3'],1), 
-                        delta = round(([latest_pollutant_data][0]['latest_o3'])-([latest_pollutant_data][0]['second_latest_o3']),1),
-                        delta_color = 'inverse')
+            st.metric(label="Latest O3", 
+                      value=round([latest_pollutant_data][0]['latest_o3'], 1), 
+                      delta=round(([latest_pollutant_data][0]['latest_o3'])-([latest_pollutant_data][0]['second_latest_o3']), 1),
+                      delta_color='inverse')
         with pollutant_col3:
-            st.metric(label = f"Latest NO2", 
-                        value = round([latest_pollutant_data][0]['latest_no2'],1), 
-                        delta = round(([latest_pollutant_data][0]['latest_no2'])-([latest_pollutant_data][0]['second_latest_no2']),1),
-                        delta_color = 'inverse')
-            
-
-
+            st.metric(label="Latest NO2", 
+                      value=round([latest_pollutant_data][0]['latest_no2'], 1), 
+                      delta=round(([latest_pollutant_data][0]['latest_no2'])-([latest_pollutant_data][0]['second_latest_no2']), 1),
+                      delta_color='inverse')
 
     else:
         if parameter_choice == 'PM 2.5':
             parameter_choice = 'pm25'
 
-        st.subheader(f'{renamed_city} {parameter_choice.upper()} (µg/m³):')
+        st.subheader(f'{renamed_city} {parameter_choice.upper()} (\u00b5g/m\u00b3):')
 
         st.write('')
 
@@ -200,10 +193,8 @@ else:
     latest_pollutant_data = get_latest_pollutants_global(renamed_city)
 
     # API used for flag image
-    flags_url = f'https://restcountries.com/v3.1/name/{country.lower()}'
-    response = requests.get(flags_url)
-    flags = response.json()
-    flag_image = flags[0]['flags']['png']
+    country_code = country_codes.get(country)
+    flag_image_url = get_flag_url(country_code)
 
     st.write('')
     st.write('')
@@ -213,7 +204,7 @@ else:
     with name_col:
         country_selected = st.title(locations_choice.title())
     with flag_col:
-        st.image(flag_image, width = 150)
+        st.image(flag_image_url, width = 150)
 
     st.write('')
     st.write('')
@@ -222,7 +213,7 @@ else:
     parameter_choice = 'pm25'
     latest_pollutant_data = get_latest_pollutants_global(renamed_city)
 
-    st.subheader(f'{renamed_city} PM 2.5 Data (µg/m³):')
+    st.subheader(f'{renamed_city} PM 2.5 Data (\u00b5g/m\u00b3):')
 
     st.write('')
 

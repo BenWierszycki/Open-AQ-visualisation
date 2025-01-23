@@ -19,10 +19,8 @@ port = st.secrets['port']
 ##########################################################################
 # Function plotting UK pollution data - all 3 pollutants
 
-
 @st.cache_data
 def get_all_pollutants_uk(renamed_city, timeframe):
-    
     conn = psql.connect(
         dbname=dbname,
         user=username,
@@ -46,9 +44,7 @@ def get_all_pollutants_uk(renamed_city, timeframe):
     sql_query = f"""
         SELECT datetime, {renamed_city}_pm25, {renamed_city}_o3, {renamed_city}_no2
         FROM student.bw_air_pollution_data
-        WHERE {renamed_city}_pm25 IS NOT NULL
-        AND {renamed_city}_NO2 < 200
-        AND datetime BETWEEN %s AND %s
+        WHERE datetime BETWEEN %s AND %s
         ORDER BY datetime
     """
 
@@ -60,8 +56,17 @@ def get_all_pollutants_uk(renamed_city, timeframe):
     cur.close()
     conn.close()
 
-    # Convert query result to df
+    # Convert query result to DataFrame
     df = pd.DataFrame(rows, columns=['datetime', f'{renamed_city}_pm25', f'{renamed_city}_o3', f'{renamed_city}_no2'])
+
+    # Ensure all columns have valid data
+    if df.empty:
+        df = pd.DataFrame({
+            'datetime': pd.date_range(start=start_datetime, end=latest_datetime, freq='H'),
+            f'{renamed_city}_pm25': 0,
+            f'{renamed_city}_o3': 0,
+            f'{renamed_city}_no2': 0
+        })
 
     # Make datetime column datetime type
     df['datetime'] = pd.to_datetime(df['datetime'])
@@ -101,6 +106,8 @@ def get_all_pollutants_uk(renamed_city, timeframe):
 
     st.plotly_chart(fig)
 
+
+
 ###########################################################################################################
 # Function plotting single pollutant data - all locations
 
@@ -130,8 +137,7 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
     sql_query = f"""
         SELECT datetime, {renamed_city}_{parameter_choice.lower()}
         FROM student.bw_air_pollution_data
-        WHERE {renamed_city}_pm25 IS NOT NULL
-        AND datetime BETWEEN %s AND %s
+        WHERE datetime BETWEEN %s AND %s
         AND {renamed_city}_{parameter_choice.lower()} != -999
         ORDER BY datetime
     """
@@ -144,8 +150,15 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
     cur.close()
     conn.close()
 
-    # Convert query result to df
+    # Convert query result to DataFrame
     df = pd.DataFrame(rows, columns=['datetime', f'{renamed_city}_{parameter_choice.lower()}'])
+
+    # Ensure all columns have valid data
+    if df.empty:
+        df = pd.DataFrame({
+            'datetime': pd.date_range(start=start_datetime, end=latest_datetime, freq='H'),
+            f'{renamed_city}_{parameter_choice.lower()}': 0
+        })
 
     # Make datetime column datetime type
     df['datetime'] = pd.to_datetime(df['datetime'])
@@ -186,6 +199,7 @@ def get_single_pollutant(renamed_city, timeframe, parameter_choice):
     )
 
     st.plotly_chart(fig)
+
 
 
 ###########################################################################################################

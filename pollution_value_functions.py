@@ -44,9 +44,17 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
         cur.execute(sql_query)
         values = cur.fetchall()
 
-        # Defining latest and 2nd latest value
-        latest_value = values[0][0]
-        second_latest_value = values[1][0]
+        # Handling cases with no data
+        if len(values) == 0:
+            latest_value = 0  # No data available, default to 0
+            second_latest_value = 0
+        elif len(values) == 1:
+            latest_value = values[0][0]  # Only one value available
+            second_latest_value = 0
+        else:
+            # Two or more values available
+            latest_value = values[0][0]
+            second_latest_value = values[1][0]
 
         latest_pollutant_data[f"latest_{pollutant}"] = latest_value
         latest_pollutant_data[f"second_latest_{pollutant}"] = second_latest_value
@@ -54,7 +62,8 @@ def get_latest_pollutants_uk(renamed_city, pollutant):
     cur.close()
     conn.close()
 
-    return  latest_pollutant_data
+    return latest_pollutant_data
+
 
 ##########################################################################################
 # Function for last 7 day average 
@@ -67,14 +76,13 @@ def get_av_last_7_days(renamed_city, parameter_choice):
         password=st.secrets['password'],
         host=st.secrets['host'],
         port=st.secrets['port']
-        )
+    )
     cur = conn.cursor()
 
     # Getting the latest datetime
     latest_datetime_query = """
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data"""
-
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
@@ -83,12 +91,24 @@ def get_av_last_7_days(renamed_city, parameter_choice):
     SELECT AVG({renamed_city.lower()}_{parameter_choice.lower()})
     FROM student.bw_air_pollution_data
     WHERE datetime BETWEEN %s AND %s
-    AND {renamed_city.lower()}_pm25 > -900
+    AND {renamed_city.lower()}_{parameter_choice.lower()} > -900
     """
-
     start_datetime = latest_datetime - timedelta(days=7)
     cur.execute(sql_query, (start_datetime, latest_datetime))
     avg_value = cur.fetchone()[0]
+
+    # If no data exists in the timeframe, fetch the latest value
+    if avg_value is None:
+        fallback_query = f"""
+        SELECT {renamed_city.lower()}_{parameter_choice.lower()}
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city.lower()}_{parameter_choice.lower()} IS NOT NULL
+        AND {renamed_city.lower()}_{parameter_choice.lower()} > -900
+        ORDER BY datetime DESC
+        LIMIT 1
+        """
+        cur.execute(fallback_query)
+        avg_value = cur.fetchone()[0]  # Use the latest value as a fallback
 
     cur.close()
     conn.close()
@@ -106,14 +126,13 @@ def get_av_last_year(renamed_city, parameter_choice):
         password=st.secrets['password'],
         host=st.secrets['host'],
         port=st.secrets['port']
-        )
+    )
     cur = conn.cursor()
 
-    # Getting latest date
+    # Getting the latest datetime
     latest_datetime_query = """
         SELECT MAX(datetime)
         FROM student.bw_air_pollution_data"""
-
     cur.execute(latest_datetime_query)
     latest_datetime = cur.fetchone()[0]
 
@@ -122,11 +141,24 @@ def get_av_last_year(renamed_city, parameter_choice):
     SELECT AVG({renamed_city.lower()}_{parameter_choice.lower()})
     FROM student.bw_air_pollution_data
     WHERE datetime BETWEEN %s AND %s
-    AND {renamed_city.lower()}_pm25 > -900
+    AND {renamed_city.lower()}_{parameter_choice.lower()} > -900
     """
     start_datetime = latest_datetime - timedelta(days=365)
     cur.execute(sql_query, (start_datetime, latest_datetime))
     avg_value = cur.fetchone()[0]
+
+    # If no data exists in the timeframe, fetch the latest value
+    if avg_value is None:
+        fallback_query = f"""
+        SELECT {renamed_city.lower()}_{parameter_choice.lower()}
+        FROM student.bw_air_pollution_data
+        WHERE {renamed_city.lower()}_{parameter_choice.lower()} IS NOT NULL
+        AND {renamed_city.lower()}_{parameter_choice.lower()} > -900
+        ORDER BY datetime DESC
+        LIMIT 1
+        """
+        cur.execute(fallback_query)
+        avg_value = cur.fetchone()[0]  # Use the latest value as a fallback
 
     cur.close()
     conn.close()
